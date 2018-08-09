@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+    <meta charset="utf-8">
+    <title>Quote</title>
+    </head>
+	<div class = "topnav">
+		<a class="active" href="/terminal/mainmenu">Home</a>
+		<a href="/terminal/trade">Trade</a>
+		<a href="/terminal/lookup">Lookup</a>
+		<a href="/terminal/account">Check Balance</a>
+	</div>
+    <body>
+        <h1>Real-time Stock Quotes</h1>
+        <form action="/terminal/quote" method="POST">
+            <input type="text" name="ticker_symbol" placeholder="Enter Ticker Symbol" required></input>
+            <button class="but" type="submit">Search</button>
+        </form>
+        <text>{{ result }}</text>
+    </body>
+</html>    

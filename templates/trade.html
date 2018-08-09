@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+    <meta charset="utf-8">
+    <title>Trade</title>
+    </head>
+	<div class = "topnav">
+		<a class="active" href="/terminal/mainmenu">Home</a>
+		<a href="/terminal/lookup">Lookup</a>
+		<a href="/terminal/quote">Quote</a>
+		<a href="/terminal/account">Check Balance</a>
+	</div>
+    <body>
+        <h1>Market Trade</h1>
+        <form action="/terminal/trade" method="POST">
+            <input type="radio" name="order_type" value="Buy">Buy<br>
+            <input type="radio" name="order_type" value="Sell">Sell<br>
+            <input type="text" name="ticker_symbol" placeholder="Enter Ticker Symbol" required></input>
+            <input type="number" name="trade_volume" placeholder="Enter No. of Shares" required></input>
+            <button class="but" type="submit">Submit</button>
+        </form>
+        <text>{{ result }}</text>
+    </body>
+</html>    
