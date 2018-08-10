@@ -10,6 +10,7 @@
 		<a href="/terminal/trade">Trade</a>
 		<a href="/terminal/lookup">Lookup</a>
 		<a href="/terminal/account">Check Balance</a>
+
 	</div>
     <body>
         <h1>Real-time Stock Quotes</h1>
@@ -17,6 +18,10 @@
             <input type="text" name="ticker_symbol" placeholder="Enter Ticker Symbol" required></input>
             <button class="but" type="submit">Search</button>
         </form>
-        <text>{{ result }}</text>
+    <text>Company: {{name}}</text>
+    <text>Previous Close: {{lastprice}}</text>
+    <text>Volume: {{volume}}</text>
+    <text>High: {{high}}</text>
+    <text>Low: {{low}}</text>
     </body>
 </html>    

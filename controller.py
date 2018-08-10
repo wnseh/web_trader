@@ -22,27 +22,31 @@ def menu():
 
 @app.route('/terminal/register', methods=['GET','POST']) #tells you which methods are accepted
 def create_account():
-	if request.method =='GET':
-		return render_template('create_account.html')
-	else:
-		submitted_username = request.form['username']
-		submitted_password = request.form['password']
-		submitted_balance = request.form['balance']
-		model.create(submitted_username,submitted_password,submitted_balance)
-		return redirect('/terminal/login')
+    if request.method =='GET':
+        return render_template('create_account.html')
+    else:
+        submitted_username = request.form['username']
+        submitted_password = request.form['password']
+        submitted_balance = 10000 #hard coded for assessment request.form['balance']
+        model.create(submitted_username,submitted_password,submitted_balance)
+        return redirect('/terminal/login')
 
 @app.route('/terminal/login',methods=['GET','POST'])
 def login():
-	if request.method =='POST':
-		submitted_username = request.form['username']
-		submitted_password = request.form['password']
-		if model.log_in(submitted_username,submitted_password):
-			session['username'] = submitted_username
-			session['password'] = submitted_password
-			return redirect('/terminal/mainmenu')
-		else:
-			return redirect('/terminal/login')
-	return ''' 
+    if request.method =='POST':
+        submitted_username = request.form['username']
+        submitted_password = request.form['password']
+        if model.log_in(submitted_username,submitted_password):
+            session['username'] = submitted_username
+            session['password'] = submitted_password
+            if model.check_admin(submitted_username):
+                session['isAdmin'] = True
+            else:
+                session['isAdmin'] = False
+            return redirect('/terminal/mainmenu')
+        else:
+            return redirect('/terminal/login')
+    return ''' 
 	<form action = "/terminal/login" method='POST'>
 		<p><input type = text name = username></p>
 		<p><input type = text name = password></p>
@@ -52,6 +56,8 @@ def login():
 
 @app.route('/terminal/mainmenu')
 def main_menu():
+    if session['isAdmin']:
+        return render_template('main_menu.html')
     return render_template('main_menu.html')
 
 @app.route('/terminal/quote', methods=['GET','POST'])
@@ -61,7 +67,13 @@ def quote():
     else:
         submitted_symbol = request.form['ticker_symbol']
         result = model.quote_last_price(submitted_symbol)
-        return render_template('quote.html',result=result)
+        return render_template('quote.html',
+                               lastprice = result['LastPrice'], \
+                               name = result['Name'],           \
+                               volume = result['Volume'],       \
+                               high = result['High'],           \
+                               low = result['Low']
+                              )
 
 @app.route('/terminal/lookup', methods=['GET','POST'])
 def lookup():
@@ -74,9 +86,25 @@ def lookup():
 
 @app.route('/terminal/account')		
 def check_balance():
-	result = model.get_user_balance(session['username'])
-	result = "${0:.2f}".format(result)
-	return render_template('account.html',result=result)
+    (balance,gains) = model.get_user_balance(session['username'])
+    balance = "${0:.2f}".format(balance)
+    gains = "${0:.2f}".format(gains)
+    title = ''
+    if session['isAdmin'] == False:
+        title = 'Account'
+        header = "Hi, {}. Here's your portfolio".format(session["username"])
+        result = '''
+        Your Gains/Loss(Theoretical): {gains}, Your Cash Balance: {balance}
+        '''.format(gains = gains, balance=balance)
+    else:
+        title = 'LeaderBoard'
+        userlist = model.getUser()
+        leaderboard = model.calculateLeaderBoard(userlist)
+        header = 'Top 10 LeaderBoard'
+        result = ''
+        for x in range(len(leaderboard)):
+            result += "Rank {}: Name: {} Gains: {}                |".format(x+1,leaderboard[x][0], leaderboard[x][1])
+    return render_template('account.html',header=header,title=title, result=result, name = session['username'])
 
 @app.route('/terminal/trade', methods=['GET','POST'])
 def trade():
@@ -104,17 +132,18 @@ def trade():
 		return render_template('trade.html')
 
 @app.route('/terminal/leaderboard', methods=['GET'])
-def leaderboard():
-	userlist = model.getUser()
-	return_list = model.calculateLeaderBoard(userlist) #list of tuples
-	return_list.sort(reverse = True, key = operator.itemgetter(1))
-	return render_template('leaderboard.html',return_list=return_list)
-	
+def createleaderboard():
+    userlist = model.getUser()
+    return_list = model.calculateLeaderBoard(userlist) #list of tuples
+    return_list.sort(reverse = True, key = operator.itemgetter(1))
+    return_list = return_list[:10] #top 10
+    return return_list
+
 @app.route('/terminal/logout', methods=['GET'])
 def logout():
-	if session:
-		session.clear()
-	return redirect('/terminal')
-	
-	
+    if session:
+        session.clear()
+    return redirect('/terminal')
+
+
 app.run(debug=True)

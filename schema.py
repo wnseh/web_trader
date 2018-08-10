@@ -7,6 +7,7 @@ cursor.execute(
     """CREATE TABLE user(
         username TXT PRIMARY KEY,
         password VARCHAR,
+        isadmin BIT,
         balance FLOAT
     );"""
 )

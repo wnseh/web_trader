@@ -7,14 +7,26 @@ import operator
 
 database = 'trade_info.db'
 
+def check_admin(username):
+    connection = sqlite3.connect(database, check_same_thread = False)
+    cursor = connection.cursor()
+    query = 'select isAdmin from user where username = "{}";'.format(username)
+    cursor.execute(query)
+    x = cursor.fetchone()
+    if x[0] == 1:
+        return True
+    return False
+
 def calculateHoldings(username):
     connection = sqlite3.connect(database, check_same_thread = False)
     cursor = connection.cursor()
-    query = 'SELECT sum(num_shares*last_price) FROM holdings WHERE username = "{}";'.format(username)
+    query = 'SELECT count(*), sum(num_shares*last_price) FROM holdings WHERE username = "{}";'.format(username)
     cursor.execute(query)
     x = cursor.fetchone()
-    return x[0]
-
+    if x[0] != 0:
+        return float(x[1])
+    else:
+        return 0
 def calculateHistory(username):
     connection = sqlite3.connect(database, check_same_thread = False)
     cursor = connection.cursor()
@@ -22,30 +34,28 @@ def calculateHistory(username):
     cursor.execute(query)
     result = cursor.fetchone()
     if result[0] != 0: #if user has stock
-        current_num_shares = result[1]
-        current_avg_price = result[2]
+        current_num_shares = float(result[1])
+        current_avg_price = float(result[2])
         return current_num_shares*current_avg_price
     else: 
         return 0
  #count total number of the shares that user currnetly holds
-def myfunc(e):
-    return e[1]
+def calculate_user_gain(user):
+    plus = calculateHoldings(user)
+    minus = calculateHistory(user)
+    gain = float(plus) - float(minus)
+    return gain
 
 def calculateLeaderBoard(userlist):
     connection = sqlite3.connect(database, check_same_thread=False)
     cursor = connection.cursor()
-    #1 - calculate total value from holdings
-
-    #2 - calculate total value  = avg_price * current # shares
-
-    # 1-2
     list_ = []
     for user in userlist:
-        plus = calculateHoldings(user)
-        minus = calculateHistory(user)
-        gain = float(plus) - float(minus)
+        gain = calculate_user_gain(user)
         x = (user, gain)
-        y = list_.append(x)
+        list_.append(x)
+    list_.sort(reverse =True, key = operator.itemgetter(1))
+    list_ = list_[:10] #top 10
     return list_
 
 def getUser():
@@ -53,10 +63,10 @@ def getUser():
     cursor = connection.cursor()
     query = 'SELECT username FROM user;'
     cursor.execute(query)
-    result =[row[0] for row in cursor.fetchall()]
+    userlist =[row[0] for row in cursor.fetchall()]
     cursor.close()
     connection.close()
-    return result
+    return userlist
 
 def log_in(user_name,password):
     connection = sqlite3.connect(database, check_same_thread=False)
@@ -74,16 +84,19 @@ def log_in(user_name,password):
 def create(new_user,new_password,new_fund):
 	connection = sqlite3.connect(database, check_same_thread=False)
 	cursor = connection.cursor()
+	isAdmin = 0
 	cursor.execute(
 		"""INSERT INTO user(
 			username,
 			password,
+                        isAdmin
 			balance
 			) VALUES(
 			'{}',
 			'{}',
+                        {},
 			{}
-		);""".format(new_user,new_password,new_fund)
+		);""".format(new_user,new_password,isAdmin,new_fund)
 	)
 	connection.commit()
 	cursor.close()
@@ -130,9 +143,10 @@ def sell(username, ticker_symbol, trade_volume):
 		number_shares = 0
 	else:
 		current_number_shares = fetch_result[1]
-	last_price = float(quote_last_price(ticker_symbol))
+	company_info = quote_last_price(ticker_symbol)
+	last_price = float(company_info['LastPrice'])
 	brokerage_fee = 6.95 #TODO un-hardcode this value
-	balance = get_user_balance(username) #TODO un-hardcode this value
+	(balance,gains) = get_user_balance(username) #TODO un-hardcode this value
 	print("Price", last_price)
 	print("brokerage fee", brokerage_fee)
 	print("current balance", balance)
@@ -201,9 +215,10 @@ def sell_db(return_list):
 def buy(username, ticker_symbol, trade_volume):
 	#we need to return True or False for the confirmation message
 	trade_volume = float(trade_volume)
-	last_price = float(quote_last_price(ticker_symbol))
+	company_info = quote_last_price(ticker_symbol)
+	last_price = float(company_info['LastPrice'])
 	brokerage_fee = 6.95 #TODO un-hardcode this value
-	balance = get_user_balance(username) #TODO un-hardcode this value
+	(balance,gains) = get_user_balance(username) #TODO un-hardcode this value
 	print("last price", last_price)
 	print("brokerage fee", brokerage_fee)
 	print("current balance", balance)
@@ -282,10 +297,11 @@ def get_user_balance(username):
     cursor = connection.cursor()
     query = 'SELECT balance FROM user WHERE username = "{}"'.format(username)
     cursor.execute(query)
+    gains = calculate_user_gain(username)
     fetched_result = cursor.fetchone()
     cursor.close()
     connection.close()
-    return fetched_result[0] #cursor.fetchone() returns tuples
+    return fetched_result[0],gains #cursor.fetchone() returns tuples
 
 def lookup_ticker_symbol(submitted_company_name):
     endpoint = 'http://dev.markitondemand.com/MODApis/Api/v2/Lookup/json?input='+submitted_company_name
@@ -297,7 +313,12 @@ def lookup_ticker_symbol(submitted_company_name):
 
 def quote_last_price(submitted_symbol):
     endpoint = 'http://dev.markitondemand.com/MODApis/Api/v2/Quote/json?symbol='+submitted_symbol
-    return json.loads(requests.get(endpoint).text)['LastPrice']
+    stock_info = json.loads(requests.get(endpoint).text)
+    return stock_info
+    
+    
+    
+
 
 
 '''
