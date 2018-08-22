@@ -98,6 +98,7 @@ def check_balance():
         '''.format(gains = gains, balance=balance)
     else:
         title = 'LeaderBoard'
+        model.updateHoldings()
         userlist = model.getUser()
         leaderboard = model.calculateLeaderBoard(userlist)
         header = 'Top 10 LeaderBoard'

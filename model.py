@@ -30,13 +30,11 @@ def calculateHoldings(username):
 def calculateHistory(username):
     connection = sqlite3.connect(database, check_same_thread = False)
     cursor = connection.cursor()
-    query = 'SELECT count(*), num_shares, avg_price FROM holdings WHERE username = "{}" ;'.format(username)
+    query = 'SELECT count(*), sum(num_shares* avg_price) FROM holdings WHERE username = "{}" ;'.format(username)
     cursor.execute(query)
-    result = cursor.fetchone()
-    if result[0] != 0: #if user has stock
-        current_num_shares = float(result[1])
-        current_avg_price = float(result[2])
-        return current_num_shares*current_avg_price
+    x = cursor.fetchone()
+    if x[0] != 0: #if user has stock
+        return float(x[1])
     else: 
         return 0
  #count total number of the shares that user currnetly holds
@@ -89,12 +87,12 @@ def create(new_user,new_password,new_fund):
 		"""INSERT INTO user(
 			username,
 			password,
-                        isAdmin
+            isAdmin,
 			balance
 			) VALUES(
 			'{}',
 			'{}',
-                        {},
+            {},
 			{}
 		);""".format(new_user,new_password,isAdmin,new_fund)
 	)
